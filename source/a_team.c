@@ -1,3 +1,5 @@
+// kate: space-indent off; indent-width 2; mixedindent off; indent-mode cstyle; 
+// vim: expandtab tabstop=2 shiftwidth=2 softtabstop=2 autoindent:
 //-----------------------------------------------------------------------------
 // Teamplay-related code for Action (formerly Axshun).  
 // Some of this is borrowed from Zoid's CTF (thanks Zoid)
