@@ -1893,6 +1893,89 @@ void PrintScores (void)
 	}
 }
 
+
+void BeginMatchModeIntermission ()
+{
+	int i;
+	edict_t *ent, *client;
+	
+	if (level.intermissiontime)
+	{
+		if (level.time > level.intermissiontime + 5.0)
+		{
+			MakeAllLivePlayersObservers ();
+			level.exitintermission = true;
+		}
+		return;			// already activated
+	}
+				
+	level.intermissiontime = level.time;
+	level.exitintermission = 0;
+	
+	game.autosaved = false;
+
+	TallyEndOfLevelTeamScores ();
+	
+	// find an intermission spot
+	ent = G_Find (NULL, FOFS (classname), "info_player_intermission");
+	if (!ent)
+	{				// the map creator forgot to put in an intermission point...
+			ent = G_Find (NULL, FOFS (classname), "info_player_start");
+			if (!ent)
+				ent = G_Find (NULL, FOFS (classname), "info_player_deathmatch");
+	}
+	else
+	{				// chose one of four spots
+			i = rand () & 3;
+			while (i--)
+			{
+				ent = G_Find (ent, FOFS (classname), "info_player_intermission");
+				if (!ent)		// wrap around the list
+			ent = G_Find (ent, FOFS (classname), "info_player_intermission");
+			}
+	}
+		
+	VectorCopy (ent->s.origin, level.intermission_origin);
+	VectorCopy (ent->s.angles, level.intermission_angle);
+
+	
+	// respawn any dead clients
+	for (i = 0; i < maxclients->value; i++)
+	{
+		client = g_edicts + 1 + i;
+		if (!client->inuse)
+			continue;
+		if (client->health <= 0)
+			respawn (client);
+	}
+	
+	// move all clients to the intermission point
+	for (i = 0; i < maxclients->value; i++)
+	{
+		client = g_edicts + 1 + i;
+		if (!client->inuse)
+			continue;
+		MoveClientToIntermission (client);
+	}
+
+	// Clear the team kills for everyone
+	for (i = 1; i <= maxclients->value; i++)
+	{
+		edict_t *temp_ent;
+		temp_ent = g_edicts + i;
+		
+		if (!temp_ent->inuse || !temp_ent->client)
+		{
+			continue;
+		}
+		temp_ent->client->team_wounds = 0;
+		temp_ent->client->team_kills = 0;
+	}
+	
+
+	
+}
+
 // WonGame: returns true if we're exiting the level.
 int WonGame (int winner)
 {
@@ -1955,7 +2038,9 @@ int WonGame (int winner)
 				SendScores ();
 				teams[TEAM1].ready = teams[TEAM2].ready = teams[TEAM3].ready = 0;
 				team_round_going = team_round_countdown = team_game_going = matchtime = 0;
-				MakeAllLivePlayersObservers ();
+				//make funny noises .. make intermission for some time .. get back to observers.
+				BeginMatchModeIntermission ();
+				
 				return 1;
 			}
 		}
@@ -1980,7 +2065,7 @@ int WonGame (int winner)
 				SendScores ();
 				teams[TEAM1].ready = teams[TEAM2].ready = teams[TEAM3].ready = matchtime = 0;
 				team_round_going = team_round_countdown = team_game_going = 0;
-				MakeAllLivePlayersObservers ();
+				//MakeAllLivePlayersObservers ();
 				return 1;
 			}
 			else
